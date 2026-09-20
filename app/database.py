@@ -1,5 +1,6 @@
 from datetime import datetime
 import sqlite3
+from app.models import Observations
 
 def create_database():
     # 1. Connect to a database file called "agritrial.db" (this creates it if it doesn't exist)
