@@ -71,8 +71,7 @@ def insert_obs(record: Observations):
     updated_at,
     synced,
     version)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?)''', (record.treatment_id,record.plot_number, record.rep, record.device_id, record.plant_height_cm, record.yield_kg_per_plot, record.spad, record.disease_pct, record.root_mass_g, datetime.now(), False, 1))
-
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?)''', (record.treatment_id,record.plot_number, record.rep, record.device_id, float(record.plant_height_cm), record.yield_kg_per_plot, record.spad, record.disease_pct, record.root_mass_g, datetime.now(), False, 1))
 
 
     con.commit()
