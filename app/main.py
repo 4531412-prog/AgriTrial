@@ -22,6 +22,10 @@ app = FastAPI(
     version="0.1.0"
 )
 
+@app.on_event("startup") //added to insantiate the database 
+def on_startup():
+    create_database()
+
 @app.post("/observations")
 async def create_record(record: Observations):
     try:
