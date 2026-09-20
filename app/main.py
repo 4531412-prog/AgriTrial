@@ -13,11 +13,22 @@ from app.models import (
 )
 from fastapi import FastAPI, HTTPException, Query
 
+from app.database import create_database, insert_obs
+from app.models import Observations
+
 app = FastAPI(
     title="AgriTrial API",
     description="Backend API for the AgriTrial MVP",
     version="0.1.0"
 )
+
+@app.post("/observations")
+async def create_record(record: Observations):
+    try:
+        insert_obs(record)
+    except Exception as e :
+        raise HTTPException(status_code=500, detail=f"{e} is the reason.")
+    return {"status": "success", "record": record}
 
 
 @app.get("/")
