@@ -1,20 +1,34 @@
 from datetime import datetime
 import sqlite3
 from app.models import Observations
+import os
+from dotenv import load_dotenv
+from supabase import create_client
+
+DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'agritrial.db') #absolute path instead of relative
+
+load_dotenv()
+url = os.getenv("SUPABASE_URL")
+key = os.getenv("SUPABASE_KEY")
+supabase = create_client(url, key)
+
+
 
 def create_database():
     # 1. Connect to a database file called "agritrial.db" (this creates it if it doesn't exist)
-    con = sqlite3.connect('agritrial.db')
-    cur = con.cursor()
+    con1 = sqlite3.connect(DB_PATH)
+    cur1 = con1.cursor()
 
-    cur.execute('''CREATE TABLE IF NOT EXISTS Sites (
+    cur1.execute('''CREATE TABLE IF NOT EXISTS sites (
     id INTEGER PRIMARY KEY,
     name TEXT NOT NULL,
     location TEXT NOT NULL
     )
     ''')
 
-    cur.execute('''CREATE TABLE IF NOT EXISTS Trials (
+    ##use dropdown for Sites in data caprute form
+
+    cur1.execute('''CREATE TABLE IF NOT EXISTS trials (
     id INTEGER PRIMARY KEY,
     site_id INTEGER, 
     crop TEXT,
@@ -23,7 +37,7 @@ def create_database():
     )
     ''')
 
-    cur.execute('''CREATE TABLE IF NOT EXISTS Treatments (
+    cur1.execute('''CREATE TABLE IF NOT EXISTS treatments (
     id INTEGER PRIMARY KEY,
     trial_id INTEGER, 
     name TEXT,
@@ -32,7 +46,7 @@ def create_database():
     ''')
 
 
-    cur.execute('''CREATE TABLE IF NOT EXISTS Observations (
+    cur1.execute('''CREATE TABLE IF NOT EXISTS observations (
     id INTEGER PRIMARY KEY,
     treatment_id INTEGER, 
     plot_number INTEGER, 
@@ -50,16 +64,16 @@ def create_database():
     )
     ''')
 
-    con.commit()
-    con.close()
+    con1.commit()
+    con1.close()
 
 
 
 def insert_obs(record: Observations):
-    con = sqlite3.connect('agritrial.db')
-    cur = con.cursor()
+    con2 = sqlite3.connect(DB_PATH)
+    cur2 = con2.cursor()
 
-    cur.execute('''INSERT INTO Observations (
+    cur2.execute('''INSERT INTO observations (
     treatment_id,
     plot_number,
     rep, device_id, 
@@ -74,5 +88,67 @@ def insert_obs(record: Observations):
     VALUES (?,?,?,?,?,?,?,?,?,?,?,?)''', (record.treatment_id,record.plot_number, record.rep, record.device_id, float(record.plant_height_cm), record.yield_kg_per_plot, record.spad, record.disease_pct, record.root_mass_g, datetime.now(), False, 1))
 
 
+    con2.commit()
+    con2.close()
+
+
+def push_to_db(record: Observations):
+    con3 = sqlite3.connect(DB_PATH)
+    con3.row_factory = sqlite3.Row #allow access to values both by index and by column name
+    cur3 = con3.cursor()
+
+    cur3.execute('''SELECT * FROM observations WHERE synced = ?''', (False,))
+
+    rowsdb = cur3.fetchall()
+
+    for reocrd in rowsdb:
+        print(dict(row))
+
+
+
+def sync_table(table_name, con, device_id, fk_column=None, parent_table=None):
+    cur_sync = con.cursor()
+    cur_sync.execute(f"SELECT * FROM {table_name} WHERE synced = ?", (False,))
+    rows_sync = cur_sync.fetchall()
+
+    for row_sync in rows_sync:
+        row_sync = dict(row_sync)
+        local_id = row_sync['id']
+        client_record_id = f"{device_id}_{local_id}"
+
+        if fk_column is not None:
+            old_fk_value = row_sync[fk_column]
+            cur_sync.execute(f"SELECT supabase_id FROM {parent_table} WHERE id = ? ", (old_fk_value,))
+            parent_result = cur_sync.fetchone()
+            row_sync[fk_column] = parent_result["supabase_id"]
+
+        del row_sync['id']
+        row_sync.pop('supabase_id', None)
+        row_sync['client_record_id'] = client_record_id
+        row_sync['device_id'] = device_id
+
+        response = supabase.table(table_name).upsert(row_sync, on_conflict="client_record_id").execute()
+        new_supabase_id = response.data[0]['id']
+
+        cur_sync.execute(f"UPDATE {table_name} SET synced = ?, supabase_id = ? WHERE id = ?", (True, new_supabase_id, local_id))
+
     con.commit()
+
+
+def sync_all(device_id):
+    on = sqlite3.connect(DB_PATH)
+    con.row_factory = sqlite3.Row
+    device_id = "device-1"
+
+if __name__ == "__main__":
+    con = sqlite3.connect(DB_PATH)
+    con.row_factory = sqlite3.Row
+    device_id = "device-1"
+
+    sync_table("sites", con, device_id)
+    sync_table("trials", con, device_id, fk_column="site_id", parent_table= "sites")
+    sync_table("treatments", con, device_id, fk_column="trial_id", parent_table="trials")
+    sync_table("observations", con, device_id, fk_column="treatment_id", parent_table="treatments")
+
     con.close()
+
