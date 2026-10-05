@@ -4,6 +4,7 @@ from app.models import Observations
 import os
 from dotenv import load_dotenv
 from supabase import create_client
+import uuid
 
 DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'agritrial.db') #absolute path instead of relative
 
@@ -91,20 +92,17 @@ def insert_obs(record: Observations):
     con2.commit()
     con2.close()
 
-
-def push_to_db(record: Observations):
-    con3 = sqlite3.connect(DB_PATH)
-    con3.row_factory = sqlite3.Row #allow access to values both by index and by column name
-    cur3 = con3.cursor()
-
-    cur3.execute('''SELECT * FROM observations WHERE synced = ?''', (False,))
-
-    rowsdb = cur3.fetchall()
-
-    for reocrd in rowsdb:
-        print(dict(row))
-
-
+# def push_to_db(record: Observations):
+#     con3 = sqlite3.connect(DB_PATH)
+#     con3.row_factory = sqlite3.Row #allow access to values both by index and by column name
+#     cur3 = con3.cursor()
+#
+#     cur3.execute('''SELECT * FROM observations WHERE synced = ?''', (False,))
+#
+#     rowsdb = cur3.fetchall()
+#
+#     for reocrd in rowsdb:
+#         print(dict(row))
 
 def sync_table(table_name, con, device_id, fk_column=None, parent_table=None):
     cur_sync = con.cursor()
@@ -135,20 +133,37 @@ def sync_table(table_name, con, device_id, fk_column=None, parent_table=None):
     con.commit()
 
 
-def sync_all(device_id):
-    on = sqlite3.connect(DB_PATH)
-    con.row_factory = sqlite3.Row
-    device_id = "device-1"
-
-if __name__ == "__main__":
+def sync_all():
     con = sqlite3.connect(DB_PATH)
     con.row_factory = sqlite3.Row
-    device_id = "device-1"
+    device_id = get_device_id(con)
+    print(device_id)
 
     sync_table("sites", con, device_id)
-    sync_table("trials", con, device_id, fk_column="site_id", parent_table= "sites")
+    sync_table("trials", con, device_id, fk_column="site_id", parent_table="sites")
     sync_table("treatments", con, device_id, fk_column="trial_id", parent_table="trials")
     sync_table("observations", con, device_id, fk_column="treatment_id", parent_table="treatments")
 
     con.close()
 
+def get_device_id(con):
+    cur_device = con.cursor()
+    cur_device.execute("SELECT * FROM device_info")
+    row_device = cur_device.fetchone()
+
+    if row_device is not None: #get the already existing device id
+        row_device = dict(row_device)
+        return row_device['device_id']
+    else:# generate new uuid, insert it, commit,return it
+        new_device_id = str(uuid.uuid4())
+
+        cur_device.execute("INSERT INTO device_info (device_id) VALUES (?)", (new_device_id,))
+
+        con.commit()
+
+        return new_device_id
+
+if __name__ == "__main__":
+    sync_all()
+
+#
