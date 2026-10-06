@@ -13,7 +13,7 @@ from app.models import (
 )
 from fastapi import FastAPI, HTTPException, Query
 
-from app.database import create_database, insert_obs
+from app.database import create_database, insert_obs, update_obs, sync_all
 from app.models import Observations
 
 app = FastAPI(
@@ -26,8 +26,30 @@ app = FastAPI(
 def on_startup():
     create_database()
 
+
+@app.put("/observations/{obs_id}")
+def update_observations(obs_id: int,record: Observations):
+    try:
+        success = update_obs(obs_id, record)
+        if not success:
+            raise HTTPException(status_code=404, detail="Observation not found")
+        return {"status": "success", "record": record}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+import traceback
+@app.post("/sync")
+def trigger_sync():
+    try:
+        results = sync_all()
+        return {"status": "success", "results": results}
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.post("/observations")
-async def create_record(record: Observations):
+def create_record(record: Observations):
     try:
         insert_obs(record)
     except Exception as e :

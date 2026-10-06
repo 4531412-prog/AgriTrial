@@ -92,6 +92,50 @@ def insert_obs(record: Observations):
     con2.commit()
     con2.close()
 
+
+def update_obs(obs_id: int, record: Observations):
+    con3 = sqlite3.connect(DB_PATH)
+    cur3 = con3.cursor()
+
+    cur3.execute("SELECT id FROM observations WHERE id = ?", (obs_id,))
+    existing = cur3.fetchone()
+
+    if existing is None:
+        con3.close()
+        return False
+
+    cur3.execute('''UPDATE observations SET
+        treatment_id = ?,
+        plot_number = ?,
+        rep = ?,
+        device_id = ?,
+        plant_height_cm = ?,
+        yield_kg_per_plot = ?,
+        spad = ?,
+        disease_pct = ?,
+        root_mass_g = ?,
+        updated_at = ?,
+        synced = ?,
+        version = version + 1
+    WHERE id = ?''', (
+        record.treatment_id,
+        record.plot_number,
+        record.rep,
+        record.device_id,
+        float(record.plant_height_cm),
+        record.yield_kg_per_plot,
+        record.spad,
+        record.disease_pct,
+        record.root_mass_g,
+        datetime.now(),
+        False,
+        obs_id #where will obs_id come from, probably the PWA
+    ))
+
+    con3.commit()
+    con3.close()
+    return True
+
 # def push_to_db(record: Observations):
 #     con3 = sqlite3.connect(DB_PATH)
 #     con3.row_factory = sqlite3.Row #allow access to values both by index and by column name
@@ -109,6 +153,10 @@ def sync_table(table_name, con, device_id, fk_column=None, parent_table=None):
     cur_sync.execute(f"SELECT * FROM {table_name} WHERE synced = ?", (False,))
     rows_sync = cur_sync.fetchall()
 
+    succeeded = 0
+    failed = []
+
+
     for row_sync in rows_sync:
         row_sync = dict(row_sync)
         local_id = row_sync['id']
@@ -125,26 +173,39 @@ def sync_table(table_name, con, device_id, fk_column=None, parent_table=None):
         row_sync['client_record_id'] = client_record_id
         row_sync['device_id'] = device_id
 
-        response = supabase.table(table_name).upsert(row_sync, on_conflict="client_record_id").execute()
+
+        try:
+            response = supabase.table(table_name).upsert(row_sync, on_conflict="client_record_id").execute()
+        except Exception as e:
+            print(f"unable to sync {table_name}; row {local_id}: {e}")
+            failed.append({"id": local_id, "error": str(e)})
+            continue
+
         new_supabase_id = response.data[0]['id']
 
         cur_sync.execute(f"UPDATE {table_name} SET synced = ?, supabase_id = ? WHERE id = ?", (True, new_supabase_id, local_id))
+        succeeded += 1
 
     con.commit()
+    message = {"table": table_name, "synced": succeeded, "failed": failed}
+
+    return message
 
 
 def sync_all():
     con = sqlite3.connect(DB_PATH)
     con.row_factory = sqlite3.Row
     device_id = get_device_id(con)
-    print(device_id)
 
-    sync_table("sites", con, device_id)
-    sync_table("trials", con, device_id, fk_column="site_id", parent_table="sites")
-    sync_table("treatments", con, device_id, fk_column="trial_id", parent_table="trials")
-    sync_table("observations", con, device_id, fk_column="treatment_id", parent_table="treatments")
+    sites_result = sync_table("sites", con, device_id)
+    trials_result =sync_table("trials", con, device_id, fk_column="site_id", parent_table="sites")
+    treatments_result =sync_table("treatments", con, device_id, fk_column="trial_id", parent_table="trials")
+    observations_result =sync_table("observations", con, device_id, fk_column="treatment_id", parent_table="treatments")
+
+    results = [sites_result, trials_result, treatments_result, observations_result]
 
     con.close()
+    return results
 
 def get_device_id(con):
     cur_device = con.cursor()
