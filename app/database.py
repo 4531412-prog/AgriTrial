@@ -1,11 +1,11 @@
 from datetime import datetime
 import sqlite3
-
 from app.models import Observations
 import os
 from dotenv import load_dotenv
 from supabase import create_client
 import uuid
+
 
 load_dotenv()
 url = os.getenv("SUPABASE_URL")
@@ -345,10 +345,4 @@ def get_observations():
             "oil_pct": row["oil_pct"],
         })
     return flat
-
-
-if __name__ == "__main__": #TESTING
-
-
-
 
