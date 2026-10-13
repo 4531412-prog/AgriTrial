@@ -2,19 +2,42 @@ from pydantic import BaseModel, Field
 from typing import Optional
 from decimal import Decimal
 
+from pydantic import BaseModel, Field
+from decimal import Decimal
+from typing import Optional
+
 class Observations(BaseModel):
-    #compulsory
+    # compulsory
     treatment_id: int
-    plot_number: int = Field(ge=1)
+    year: int= Field(ge=1)
     rep: int = Field(ge=1)
     device_id: str
 
-    #optional
-    plant_height_cm: Optional[Decimal] = Field(default=None, ge=0, le=4000, decimal_places=3)
-    yield_kg_per_plot: Optional[Decimal] = Field(default=None, ge=0, le=200, decimal_places=3)
-    spad: Optional[Decimal] = Field(default=None, ge=0.0, le=99.9, decimal_places=3)
-    disease_pct: Optional[Decimal] = Field(default=None, ge=0, le=100, decimal_places=3 )
-    root_mass_g: Optional[Decimal] = Field(default=None, ge=0, le=1000, decimal_places=3)
+    yield_: Optional[Decimal] = Field(default=None, alias="yield", ge=0, decimal_places=3)
+    bio_yield: Optional[Decimal] = Field(default=None, ge=0, decimal_places=3)
+    pods_per_plant: Optional[Decimal] = Field(default=None, ge=0, decimal_places=3)
+    thousand_seed_wt: Optional[Decimal] = Field(default=None, ge=0, decimal_places=3)
+    oil_pct: Optional[Decimal] = Field(default=None, ge=0, le=100, decimal_places=3)
+
+    n: Optional[Decimal] = Field(default=None, ge=0, decimal_places=3)
+    p: Optional[Decimal] = Field(default=None, ge=0, decimal_places=3)
+    k: Optional[Decimal] = Field(default=None, ge=0, decimal_places=3)
+    na: Optional[Decimal] = Field(default=None, ge=0, decimal_places=3)
+    ca: Optional[Decimal] = Field(default=None, ge=0, decimal_places=3)
+    mg: Optional[Decimal] = Field(default=None, ge=0, decimal_places=3)
+    fe: Optional[Decimal] = Field(default=None, ge=0, decimal_places=3)
+    mn: Optional[Decimal] = Field(default=None, ge=0, decimal_places=3)
+    zn: Optional[Decimal] = Field(default=None, ge=0, decimal_places=3)
+    cu: Optional[Decimal] = Field(default=None, ge=0, decimal_places=3)
+
+    chl_a: Optional[Decimal] = Field(default=None, ge=0, decimal_places=3)
+    chl_b: Optional[Decimal] = Field(default=None, ge=0, decimal_places=3)
+    rwc: Optional[Decimal] = Field(default=None, ge=0, le=100, decimal_places=3)
+    ionic_leakage: Optional[Decimal] = Field(default=None, ge=0, le=100, decimal_places=3)
+    proline: Optional[Decimal] = Field(default=None, ge=0, decimal_places=3)
+
+    class Config:
+        populate_by_name = True  # lets you construct with yield_= in Python, while JSON still uses "yield"
 
 
 class TreatmentStatistics(BaseModel):
