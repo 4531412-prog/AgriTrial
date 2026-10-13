@@ -9,6 +9,8 @@ It must not be treated as real trial data.
 The production data source will later be replaced by the
 AgriTrial SQLite/Supabase persistence layer.
 """
+
+
 TRIAL_DATA = [
     {
         "trial_id": 1,
