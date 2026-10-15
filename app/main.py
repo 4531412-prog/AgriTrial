@@ -1,4 +1,5 @@
-
+#py -m uvicorn app.main:app --reload --> to load up backend in terminal
+#fetch('http://127.0.0.1:8000/health').then(r => r.json()).then(console.log) --> check status of web page in console {F12}
 from app.data import TRIAL_DATA
 
 from app.statistics import calculate_ci
@@ -12,14 +13,22 @@ from app.models import (
     MultiSiteComparisonResponse
 )
 from fastapi import FastAPI, HTTPException, Query
+from fastapi.middleware.cors import CORSMiddleware
 
-from app.database import create_database, insert_obs, update_obs, sync_all
+from app.database import create_database, insert_obs, update_obs, sync_all, get_treatments, get_summary
 from app.models import Observations
 
 app = FastAPI(
     title="AgriTrial API",
     description="Backend API for the AgriTrial MVP",
     version="0.1.0"
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=['*'],
+    allow_headers=['*']
 )
 
 @app.on_event("startup") #added to insantiate the database
@@ -36,6 +45,15 @@ def update_observations(obs_id: int,record: Observations):
         return {"status": "success", "record": record}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/summary")
+def summary():
+    try:
+        return get_summary()
+    except Exception as e :
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 
 import traceback
@@ -64,6 +82,12 @@ def root():
         "status": "running"
     }
 
+@app.get ("/treatments")
+def list_treatments():
+    try:
+        return get_treatments()
+    except Exception as e :
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/health")
 def health():

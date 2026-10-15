@@ -346,3 +346,35 @@ def get_observations():
         })
     return flat
 
+def get_treatments():
+    con = sqlite3.connect(DB_PATH)
+    con.row_factory = sqlite3.Row
+    cur = con.cursor()
+
+    cur.execute("SELECT id, name FROM treatments")
+
+    rows = cur.fetchall()
+
+    con.close()
+    return [dict(row) for row in rows] #for each row make a dict then combine them into a list
+
+def get_summary():
+    con = sqlite3.connect(DB_PATH)
+    cur = con.cursor()
+
+    cur.execute("SELECT COUNT(*) FROM observations")
+    records = cur.fetchone()[0]
+
+    cur.execute("SELECT COUNT(*) FROM treatments")
+    treatments = cur.fetchone()[0]
+
+    cur.execute("SELECT COUNT(DISTINCT year) FROM observations")
+    years = cur.fetchone()[0]
+
+    cur.execute("SELECT COUNT(*) FROM observations WHERE synced = 0")
+    pending = cur.fetchone()[0]
+
+    con.close()
+    return {"records": records, "treatments": treatments, "years": years, "pending_sync": pending}
+
+
