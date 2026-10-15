@@ -694,8 +694,9 @@ function renderTable(data) {
         const cell = document.createElement("td");
 
         cell.colSpan = columns.length;
-        cell.textContent = "No records to show";
-
+        cell.textContent = Array.isArray(data)
+          ? "No records to show"
+          : "Observation records are unavailable: the backend does not support retrieving them yet.";
         row.appendChild(cell);
         body.appendChild(row);
         return;
