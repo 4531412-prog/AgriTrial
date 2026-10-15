@@ -1,3 +1,4 @@
+
 import numpy as np
 from scipy import stats
 
@@ -11,14 +12,29 @@ def calculate_ci(
     for a treatment group's measurements.
     """
 
+    # Require at least two observations
     if len(values) < 2:
         raise ValueError(
             "At least two observations are required "
             "to calculate a confidence interval."
         )
 
+    # Convert observations into numerical data
     data = np.array(values, dtype=float)
 
+    # Reject NaN and infinite values
+    if not np.all(np.isfinite(data)):
+        raise ValueError(
+            "All observations must be valid, finite numbers."
+        )
+
+    # Check that the confidence level is valid
+    if not 0 < confidence < 1:
+        raise ValueError(
+            "Confidence level must be between 0 and 1."
+        )
+
+    # Calculate summary statistics
     n = len(data)
 
     mean = float(np.mean(data))
@@ -35,13 +51,19 @@ def calculate_ci(
         stats.sem(data)
     )
 
-    lower, upper = stats.t.interval(
-        confidence,
-        df=n - 1,
-        loc=mean,
-        scale=standard_error
-    )
+    # Handle identical observations
+    if standard_error == 0:
+        lower = mean
+        upper = mean
+    else:
+        lower, upper = stats.t.interval(
+            confidence,
+            df=n - 1,
+            loc=mean,
+            scale=standard_error
+        )
 
+    # Return the results
     return {
         "n": n,
         "mean": round(mean, 4),

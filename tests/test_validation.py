@@ -68,3 +68,52 @@ def test_wrong_crop():
                 "Treatment A"
             ]
         )
+
+def test_reject_missing_measurement_value():
+    from app.validation import validate_comparison
+
+    data = [
+        {"site": "A", "crop": "Soybean", "metric": "yield",
+         "treatment": "Control", "value": 10.0},
+        {"site": "A", "crop": "Soybean", "metric": "yield",
+         "treatment": "Control", "value": None},
+        {"site": "A", "crop": "Soybean", "metric": "yield",
+         "treatment": "Fertilizer", "value": 12.0},
+        {"site": "A", "crop": "Soybean", "metric": "yield",
+         "treatment": "Fertilizer", "value": 14.0},
+    ]
+
+    import pytest
+
+    with pytest.raises(ValueError, match="valid observations"):
+        validate_comparison(
+            data=data,
+            site="A",
+            crop="Soybean",
+            metric="yield",
+            treatments=["Control", "Fertilizer"],
+        )
+
+def test_multi_site_rejects_missing_measurement():
+    import pytest
+    from app.validation import validate_multi_site_comparison
+
+    data = [
+        {"site": "A", "crop": "Soybean", "metric": "yield",
+         "treatment": "Control", "value": 10.0},
+        {"site": "A", "crop": "Soybean", "metric": "yield",
+         "treatment": "Control", "value": None},
+        {"site": "B", "crop": "Soybean", "metric": "yield",
+         "treatment": "Control", "value": 12.0},
+        {"site": "B", "crop": "Soybean", "metric": "yield",
+         "treatment": "Control", "value": 14.0},
+    ]
+
+    with pytest.raises(ValueError, match="valid observations"):
+        validate_multi_site_comparison(
+            data=data,
+            sites=["A", "B"],
+            crop="Soybean",
+            metric="yield",
+            treatment="Control",
+        )

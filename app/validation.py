@@ -1,3 +1,5 @@
+import math
+
 def validate_comparison(
     data: list[dict],
     site: str,
@@ -80,11 +82,18 @@ def validate_comparison(
                 f"does not exist."
             )
 
-        if len(treatment_rows) < minimum_observations:
+        valid_observations = [
+            row
+            for row in treatment_rows
+            if isinstance(row.get("value"), (int, float))
+               and not isinstance(row.get("value"), bool)
+               and math.isfinite(row["value"])
+        ]
+
+        if len(valid_observations) < minimum_observations:
             raise ValueError(
                 f"Treatment '{treatment}' requires "
-                f"at least {minimum_observations} "
-                f"observations."
+                f"at least {minimum_observations} valid observations."
             )
 
     return True
@@ -157,11 +166,19 @@ def validate_multi_site_comparison(
                 f"exist at site '{site}'."
             )
 
-        if len(treatment_rows) < minimum_observations:
+        valid_observations = [
+            row
+            for row in treatment_rows
+            if isinstance(row.get("value"), (int, float))
+               and not isinstance(row.get("value"), bool)
+               and math.isfinite(row["value"])
+        ]
+
+        if len(valid_observations) < minimum_observations:
             raise ValueError(
                 f"Treatment '{treatment}' at "
                 f"site '{site}' requires at least "
-                f"{minimum_observations} observations."
+                f"{minimum_observations} valid observations."
             )
 
     return True

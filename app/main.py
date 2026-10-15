@@ -1,6 +1,8 @@
 #py -m uvicorn app.main:app --reload --> to load up backend in terminal
 #fetch('http://127.0.0.1:8000/health').then(r => r.json()).then(console.log) --> check status of web page in console {F12}
 from app.data import TRIAL_DATA
+from app.analytics_adapter import get_live_analytical_data
+from app.metrics import validate_metric
 
 from app.statistics import calculate_ci
 
@@ -103,7 +105,22 @@ def get_trials(
     crop: str | None = None,
     metric: str | None = None
 ):
-    results = TRIAL_DATA
+
+    if metric is not None:
+        try:
+            validate_metric(metric)
+        except ValueError as error:
+            raise HTTPException(
+                status_code=400,
+                detail=str(error)
+            )
+    try:
+        results = get_live_analytical_data()
+    except Exception:
+        raise HTTPException(
+            status_code=503,
+            detail="Analytical data is temporarily unavailable."
+        )
 
     if site:
         results = [
@@ -144,16 +161,31 @@ def compare_treatments(
     treatment_a: str,
     treatment_b: str
 ):
+    import math
+
+    try:
+        validate_metric(metric)
+    except ValueError as error:
+        raise HTTPException(
+            status_code=400,
+            detail=str(error)
+        )
+
+    try:
+        data = get_live_analytical_data()
+    except Exception:
+        raise HTTPException(
+            status_code=503,
+            detail="Analytical data is temporarily unavailable."
+        )
+
     try:
         validate_comparison(
-            data=TRIAL_DATA,
+            data=data,
             site=site,
             crop=crop,
             metric=metric,
-            treatments=[
-                treatment_a,
-                treatment_b
-            ]
+            treatments=[treatment_a, treatment_b]
         )
     except ValueError as error:
         raise HTTPException(
@@ -161,23 +193,21 @@ def compare_treatments(
             detail=str(error)
         )
 
-    group_a = [
-        row["value"]
-        for row in TRIAL_DATA
-        if row["site"] == site
-        and row["crop"] == crop
-        and row["metric"] == metric
-        and row["treatment"] == treatment_a
-    ]
+    def group_values(treatment):
+        return [
+            row["value"]
+            for row in data
+            if row["site"] == site
+            and row["crop"] == crop
+            and row["metric"] == metric
+            and row["treatment"] == treatment
+            and isinstance(row.get("value"), (int, float))
+            and not isinstance(row.get("value"), bool)
+            and math.isfinite(row["value"])
+        ]
 
-    group_b = [
-        row["value"]
-        for row in TRIAL_DATA
-        if row["site"] == site
-        and row["crop"] == crop
-        and row["metric"] == metric
-        and row["treatment"] == treatment_b
-    ]
+    group_a = group_values(treatment_a)
+    group_b = group_values(treatment_b)
 
     return {
         "site": site,
@@ -195,6 +225,8 @@ def compare_treatments(
             }
         ]
     }
+
+
 @app.get(
     "/compare-multiple",
     response_model=ComparisonResponse
@@ -205,9 +237,27 @@ def compare_multiple_treatments(
     metric: str,
     treatments: list[str] = Query(...)
 ):
+    import math
+
+    try:
+        validate_metric(metric)
+    except ValueError as error:
+        raise HTTPException(
+            status_code=400,
+            detail=str(error)
+        )
+
+    try:
+        data = get_live_analytical_data()
+    except Exception:
+        raise HTTPException(
+            status_code=503,
+            detail="Analytical data is temporarily unavailable."
+        )
+
     try:
         validate_comparison(
-            data=TRIAL_DATA,
+            data=data,
             site=site,
             crop=crop,
             metric=metric,
@@ -224,19 +274,20 @@ def compare_multiple_treatments(
     for treatment in treatments:
         values = [
             row["value"]
-            for row in TRIAL_DATA
+            for row in data
             if row["site"] == site
             and row["crop"] == crop
             and row["metric"] == metric
             and row["treatment"] == treatment
+            and isinstance(row.get("value"), (int, float))
+            and not isinstance(row.get("value"), bool)
+            and math.isfinite(row["value"])
         ]
 
-        groups.append(
-            {
-                "treatment": treatment,
-                **calculate_ci(values)
-            }
-        )
+        groups.append({
+            "treatment": treatment,
+            **calculate_ci(values)
+        })
 
     return {
         "site": site,
@@ -245,6 +296,8 @@ def compare_multiple_treatments(
         "confidence_level": 0.95,
         "groups": groups
     }
+
+
 @app.get(
     "/compare-sites",
     response_model=MultiSiteComparisonResponse
@@ -255,9 +308,27 @@ def compare_sites(
     treatment: str,
     sites: list[str] = Query(...)
 ):
+    import math
+
+    try:
+        validate_metric(metric)
+    except ValueError as error:
+        raise HTTPException(
+            status_code=400,
+            detail=str(error)
+        )
+
+    try:
+        data = get_live_analytical_data()
+    except Exception:
+        raise HTTPException(
+            status_code=503,
+            detail="Analytical data is temporarily unavailable."
+        )
+
     try:
         validate_multi_site_comparison(
-            data=TRIAL_DATA,
+            data=data,
             sites=sites,
             crop=crop,
             metric=metric,
@@ -274,20 +345,21 @@ def compare_sites(
     for site in sites:
         values = [
             row["value"]
-            for row in TRIAL_DATA
+            for row in data
             if row["site"] == site
             and row["crop"] == crop
             and row["metric"] == metric
             and row["treatment"] == treatment
+            and isinstance(row.get("value"), (int, float))
+            and not isinstance(row.get("value"), bool)
+            and math.isfinite(row["value"])
         ]
 
-        groups.append(
-            {
-                "site": site,
-                "treatment": treatment,
-                **calculate_ci(values)
-            }
-        )
+        groups.append({
+            "site": site,
+            "treatment": treatment,
+            **calculate_ci(values)
+        })
 
     return {
         "sites": sites,
