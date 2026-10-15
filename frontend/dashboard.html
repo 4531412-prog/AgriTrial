@@ -898,7 +898,10 @@ async function loadApiExample() {
         console.error("API example error:", error);
 
         box.textContent =
-            "GET " + url + "\n\nBackend not reachable.";
+         "GET " + url + "\n\n" +
+        (error.message === "Server returned 405" 
+           ? "GET /observations is not supported by the backend yet (HTTP 405)."
+           : "Unable to retrieve observations: " + error.message);
     }
 }
 
