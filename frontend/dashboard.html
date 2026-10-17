@@ -600,8 +600,11 @@ function renderStats(data) {
 
         const value = document.createElement("h3");
 
-        if (stat.key === "pending_sync") {
-            value.textContent = String(getPending().length);
+        if (stat.key === "pending_sync") { 
+            const inDatabase = data ? data_pending_sync : 0; //rows in SQLite waiting for Supabase 
+            value.textContent = String(inDatabase + getPending().length);
+
+            
         } else {
             value.textContent =
                 data && data[stat.key] !== undefined
@@ -811,7 +814,7 @@ async function saveRecord(event) {
 
 async function syncNow() {
     const message = document.getElementById("syncMessage");
-    const pending = getPending();
+    const pending = getPending(); //local records
 
     if (pending.length === 0) {
         message.textContent = "No records to sync.";
@@ -819,18 +822,18 @@ async function syncNow() {
     }
 
     message.textContent = "Syncing...";
-
+    //browser to SQLite (backend)
     let synced = 0;
 
     // Process one record at a time.
     // Stop on uncertainty to avoid duplicate submissions.
-    while (synced < pending.length) {
+    while (synced < pending.length) { 
         const record = pending[synced];
 
         let response;
 
         try {
-            response = await fetch(API + "/observations", {
+            response = await fetch(API + "/observations", { //save button post
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json"
@@ -839,7 +842,7 @@ async function syncNow() {
             });
         } catch (error) {
             console.error("Sync connection error:", error);
-            break;
+            break; //server cant be reached so keep in loacl
         }
 
         if (!response.ok) {
@@ -853,14 +856,37 @@ async function syncNow() {
 
         synced++;
 
-        // Persist progress after each confirmed success.
-        localStorage.setItem(
+        localStorage.setItem( //remove synced records
             "agritrial_pending",
             JSON.stringify(pending.slice(synced))
         );
     }
 
     const remaining = getPending().length;
+    // SQLite to Supabase 
+    let cloud = '';
+
+    try {
+        const res =  await frtch(API + '/sync', {method: "POST"});
+
+        if (!res.ok) throw new Error('Server returned ' + res.status); //goes to catch
+ 
+        const data = await res.join();
+
+        let ok = 0; //rows synced 
+        let bad = 0; //rows failed
+
+        data.results.forEacch( r => {
+            ok += r.synced;
+            bad += r.failed.length;
+        });
+
+        cloud = " Cloud: " + ok + " synced" + (bad ? ", " + bad + " failed." : ".");
+           
+    } catch (error) {
+        console.error('Cloud sync error: ', error); //F12
+        cloud = 'Cloud sync failed';
+    }
 
     message.textContent = remaining === 0
         ? "Sync complete."
