@@ -1,0 +1,1148 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FARMILY | AgriTrial Dashboard</title>
+
+<style>
+:root {
+    --green: #2e7d32;
+    --green-light: #e8f5e9;
+    --background: #f2f4f2;
+    --border: #d6ddd6;
+    --text: #222;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    background: var(--background);
+    color: var(--text);
+    font-family: Arial, sans-serif;
+}
+
+header {
+    position: relative;
+    background: var(--green);
+    color: white;
+    padding: 22px 18px;
+    text-align: center;
+}
+
+header h1 {
+    margin: 0 0 5px;
+    font-size: 27px;
+    letter-spacing: 1px;
+}
+
+header p {
+    margin: 0;
+    font-size: 14px;
+}
+
+.header-status {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin-top: 12px;
+}
+
+.header-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 12px;
+    border-radius: 30px;
+    background: rgba(255,255,255,0.17);
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.header-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #d3e1d3;
+}
+
+.container {
+    width: 92%;
+    max-width: 1100px;
+    margin: 22px auto;
+}
+
+.tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+button {
+    padding: 10px 15px;
+    border: none;
+    background: #ddd;
+    cursor: pointer;
+    font: inherit;
+}
+
+button:hover {
+    filter: brightness(0.96);
+}
+
+button.active,
+.submit-btn {
+    background: var(--green);
+    color: white;
+}
+
+.stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.stat {
+    background: white;
+    border: 1px solid var(--border);
+    padding: 15px;
+    text-align: center;
+}
+
+.stat small {
+    color: #666;
+}
+
+.stat h3 {
+    margin: 8px 0 0;
+    color: var(--green);
+    font-size: 24px;
+}
+
+.card {
+    background: white;
+    border: 1px solid var(--border);
+    padding: 18px;
+    margin-bottom: 16px;
+}
+
+h2 {
+    font-size: 18px;
+    margin: 0 0 16px;
+}
+
+.card p {
+    line-height: 1.6;
+}
+
+.view {
+    display: none;
+}
+
+.view.active {
+    display: block;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+label {
+    display: block;
+    font-size: 14px;
+    margin-bottom: 5px;
+}
+
+input,
+select {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #aaa;
+    background: white;
+    font: inherit;
+}
+
+.actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.sync-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+#saveMessage,
+#syncMessage {
+    font-size: 13px;
+}
+
+.chart-box {
+    overflow-x: auto;
+}
+
+canvas {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    border: 1px solid var(--border);
+}
+
+.chart-note {
+    color: #666;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.api {
+    background: #f3f3f3;
+    padding: 12px;
+    font-family: monospace;
+    font-size: 12px;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.table-box {
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+th,
+td {
+    border: 1px solid #ccc;
+    padding: 8px;
+    text-align: left;
+    white-space: nowrap;
+}
+
+th {
+    background: #e8e8e8;
+}
+
+@media (max-width: 700px) {
+    .stats {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .tabs {
+        flex-wrap: wrap;
+    }
+
+    .card {
+        padding: 12px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+    <h1>FARMILY</h1>
+    <p>AgriTrial Milestone 2 Dashboard</p>
+
+    <div class="header-status">
+        <span class="header-pill">
+            <span class="header-dot"></span>
+            SQLite
+        </span>
+
+        <span class="header-pill">
+            <span class="header-dot"></span>
+            Supabase
+        </span>
+    </div>
+</header>
+
+<main class="container">
+
+    <div class="tabs">
+        <button
+            class="active"
+            onclick="showView('farmer', this)"
+        >
+            Farmer View
+        </button>
+
+        <button
+            onclick="showView('researcher', this)"
+        >
+            Researcher View
+        </button>
+    </div>
+
+    <div class="stats" id="stats"></div>
+
+    <section class="card">
+        <h2>Trial Information</h2>
+
+        <p>
+            <b>Site:</b> University of the Western Cape
+        </p>
+
+        <p>
+            <b>Crop:</b> Canola
+        </p>
+
+        <p>
+            <b>Treatments:</b>
+            Control, Humic acid, Seaweed Extract,
+            Fumic acid, Amino acid, Combined
+        </p>
+
+        <p>
+            <b>Protocols:</b> Step 1, Step 2
+        </p>
+    </section>
+
+    <!-- FARMER VIEW -->
+
+    <section id="farmer" class="view active">
+        <div class="card">
+            <h2>Farmer Data Capture Form</h2>
+
+            <form onsubmit="saveRecord(event)">
+                <div class="form-grid" id="formGrid">
+
+                    <div>
+                        <label for="treatment">
+                            Treatment Group
+                        </label>
+
+                        <select
+                            id="treatment"
+                            required
+                        >
+                            <option value="">
+                                Loading treatments...
+                            </option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label for="rep">Rep</label>
+                        <input
+                            id="rep"
+                            type="number"
+                            min="1"
+                            required
+                        >
+                    </div>
+
+                    <div>
+                        <label for="year">Year</label>
+                        <input
+                            id="year"
+                            type="number"
+                            min="1"
+                            required
+                        >
+                    </div>
+
+                </div>
+
+                <div class="actions">
+                    <button
+                        class="submit-btn"
+                        type="submit"
+                    >
+                        Save
+                    </button>
+
+                    <div class="sync-group">
+                        <span id="syncMessage"></span>
+
+                        <button
+                            class="submit-btn"
+                            type="button"
+                            onclick="syncNow()"
+                        >
+                            Sync to cloud
+                        </button>
+                    </div>
+                </div>
+            </form>
+
+            <p id="saveMessage"></p>
+        </div>
+    </section>
+
+    <!-- RESEARCHER VIEW -->
+
+    <section id="researcher" class="view">
+        <div class="card">
+            <h2>
+                Canola Yield — 95% Confidence Intervals
+            </h2>
+
+            <div class="chart-box">
+                <canvas
+                    id="ciChart"
+                    width="850"
+                    height="340"
+                ></canvas>
+            </div>
+
+            <p class="chart-note">
+                Each black dot represents a treatment mean.
+                Each green vertical bar represents its
+                calculated 95% confidence interval.
+                Results are requested from the live backend.
+            </p>
+        </div>
+
+        <div class="card">
+            <h2>API Endpoint Example</h2>
+
+            <div
+                class="api"
+                id="apiExample"
+            >
+                Loading...
+            </div>
+        </div>
+    </section>
+
+    <!-- TRIAL DATA -->
+
+    <section class="card">
+        <h2>Trial Data</h2>
+
+        <div class="table-box">
+            <table>
+                <thead id="tableHead"></thead>
+                <tbody id="dataTable"></tbody>
+            </table>
+        </div>
+    </section>
+
+</main>
+
+<script>
+"use strict";
+
+const API = "http://127.0.0.1:8000";
+
+const fields = [
+    { key: "yield", label: "Yield" },
+    { key: "bio_yield", label: "Bio yield" },
+    { key: "pods_per_plant", label: "Pods per plant" },
+    { key: "thousand_seed_wt", label: "1000 seed weight" },
+    { key: "oil_pct", label: "Oil %", max: 100 },
+    { key: "n", label: "N" },
+    { key: "p", label: "P" },
+    { key: "k", label: "K" },
+    { key: "na", label: "Na" },
+    { key: "ca", label: "Ca" },
+    { key: "mg", label: "Mg" },
+    { key: "fe", label: "Fe" },
+    { key: "mn", label: "Mn" },
+    { key: "zn", label: "Zn" },
+    { key: "cu", label: "Cu" },
+    { key: "chl_a", label: "Chl a" },
+    { key: "chl_b", label: "Chl b" },
+    { key: "rwc", label: "RWC %", max: 100 },
+    {
+        key: "ionic_leakage",
+        label: "Ionic leakage %",
+        max: 100
+    },
+    { key: "proline", label: "Proline" }
+];
+
+const stats = [
+    { key: "records", label: "Records" },
+    { key: "treatments", label: "Treatments" },
+    { key: "years", label: "Seasons" },
+    { key: "pending_sync", label: "Unsynced" }
+];
+
+const columns = [
+    { key: "treatment", label: "Treatment" },
+    { key: "year", label: "Year" },
+    { key: "rep", label: "Rep" },
+    ...fields
+];
+
+const chartTreatments = [
+    "Control",
+    "Amino acid",
+    "Seaweed Extract",
+    "Humic acid",
+    "Fumic acid",
+    "Combined"
+];
+
+// NAVIGATION
+
+function showView(id, button) {
+    document.querySelectorAll(".view").forEach(view => {
+        view.classList.remove("active");
+    });
+
+    document.getElementById(id).classList.add("active");
+
+    document.querySelectorAll(".tabs button").forEach(tab => {
+        tab.classList.remove("active");
+    });
+
+    button.classList.add("active");
+
+    if (id === "researcher") {
+        drawChart();
+    }
+}
+
+// FIELD GENERATION
+
+function renderFields() {
+    const grid = document.getElementById("formGrid");
+
+    fields.forEach(field => {
+        const box = document.createElement("div");
+
+        const label = document.createElement("label");
+        label.htmlFor = field.key;
+        label.textContent = field.label;
+
+        const input = document.createElement("input");
+        input.id = field.key;
+        input.type = "number";
+        input.step = "0.001";
+        input.min = "0";
+
+        if (field.max !== undefined) {
+            input.max = String(field.max);
+        }
+
+        box.appendChild(label);
+        box.appendChild(input);
+        grid.appendChild(box);
+    });
+}
+
+// HELPERS
+
+function num(id) {
+    const value = document.getElementById(id).value;
+    return value === "" ? null : Number(value);
+}
+
+function getDeviceId() {
+    let id = localStorage.getItem("agritrial_device_id");
+
+    if (!id) {
+        id = (
+            typeof crypto !== "undefined" &&
+            typeof crypto.randomUUID === "function"
+        )
+            ? crypto.randomUUID()
+            : Date.now() + "-" +
+              Math.random().toString(36).slice(2);
+
+        localStorage.setItem("agritrial_device_id", id);
+    }
+
+    return id;
+}
+
+function getPending() {
+    try {
+        const value = JSON.parse(
+            localStorage.getItem("agritrial_pending") || "[]"
+        );
+
+        return Array.isArray(value) ? value : [];
+    } catch (error) {
+        console.error("Unable to read pending records", error);
+        return [];
+    }
+}
+
+// SUMMARY STATISTICS
+
+function renderStats(data) {
+    const box = document.getElementById("stats");
+    box.replaceChildren();
+
+    stats.forEach(stat => {
+        const tile = document.createElement("div");
+        tile.className = "stat";
+
+        const label = document.createElement("small");
+        label.textContent = stat.label;
+
+        const value = document.createElement("h3");
+
+        if (stat.key === "pending_sync") { 
+            const inDatabase = data ? data_pending_sync : 0; //rows in SQLite waiting for Supabase 
+            value.textContent = String(inDatabase + getPending().length);
+
+            
+        } else {
+            value.textContent =
+                data && data[stat.key] !== undefined
+                    ? String(data[stat.key])
+                    : "-";
+        }
+
+        tile.appendChild(label);
+        tile.appendChild(value);
+        box.appendChild(tile);
+    });
+}
+
+async function loadStats() {
+    try {
+        const response = await fetch(API + "/summary");
+
+        if (!response.ok) {
+            throw new Error("Server returned " + response.status);
+        }
+
+        renderStats(await response.json());
+    } catch (error) {
+        console.error("Unable to load summary", error);
+        renderStats(null);
+    }
+}
+
+// TREATMENT DROPDOWN
+
+async function loadTreatments() {
+    const select = document.getElementById("treatment");
+
+    try {
+        const response = await fetch(API + "/treatments");
+
+        if (!response.ok) {
+            throw new Error("Server returned " + response.status);
+        }
+
+        const treatments = await response.json();
+
+        select.replaceChildren();
+
+        const placeholder = document.createElement("option");
+        placeholder.value = "";
+        placeholder.textContent = "Select treatment";
+        placeholder.disabled = true;
+        placeholder.selected = true;
+        select.appendChild(placeholder);
+
+        treatments.forEach(treatment => {
+            const option = document.createElement("option");
+            option.value = treatment.id;
+            option.textContent = treatment.name;
+            select.appendChild(option);
+        });
+    } catch (error) {
+        console.error("Unable to load treatments", error);
+        select.replaceChildren();
+
+        const option = document.createElement("option");
+        option.value = "";
+        option.textContent = "Treatments unavailable";
+        select.appendChild(option);
+    }
+}
+
+// TRIAL DATA TABLE
+
+function renderTable(data) {
+    const head = document.getElementById("tableHead");
+    const body = document.getElementById("dataTable");
+
+    head.replaceChildren();
+    body.replaceChildren();
+
+    const headerRow = document.createElement("tr");
+
+    columns.forEach(column => {
+        const cell = document.createElement("th");
+        cell.textContent = column.label;
+        headerRow.appendChild(cell);
+    });
+
+    head.appendChild(headerRow);
+
+    if (!Array.isArray(data) || data.length === 0) {
+        const row = document.createElement("tr");
+        const cell = document.createElement("td");
+
+        cell.colSpan = columns.length;
+        cell.textContent = Array.isArray(data)
+          ? "No records to show"
+          : "Observation records are unavailable: the backend does not support retrieving them yet.";
+        row.appendChild(cell);
+        body.appendChild(row);
+        return;
+    }
+
+    data.forEach(record => {
+        const row = document.createElement("tr");
+
+        columns.forEach(column => {
+            const cell = document.createElement("td");
+
+            cell.textContent =
+                record[column.key] === null ||
+                record[column.key] === undefined
+                    ? "-"
+                    : String(record[column.key]);
+
+            row.appendChild(cell);
+        });
+
+        body.appendChild(row);
+    });
+}
+
+async function loadTable() {
+    try {
+        const response = await fetch(API + "/observations");
+
+        if (!response.ok) {
+            throw new Error("Server returned " + response.status);
+        }
+
+        renderTable(await response.json());
+    } catch (error) {
+        console.error("Unable to load observations", error);
+        renderTable(null);
+    }
+}
+
+// SAVE FARMER RECORD
+
+async function saveRecord(event) {
+    event.preventDefault();
+
+    const message = document.getElementById("saveMessage");
+
+    const record = {
+        treatment_id: num("treatment"),
+        rep: num("rep"),
+        year: num("year"),
+        device_id: getDeviceId()
+    };
+
+    fields.forEach(field => {
+        record[field.key] = num(field.key);
+    });
+
+    message.textContent = "Saving...";
+
+    try {
+        const response = await fetch(API + "/observations", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(record)
+        });
+
+        if (!response.ok) {
+            const details = await response.text();
+
+            console.error("Validation error:", details);
+            message.textContent =
+                "Server rejected this record. Check the console.";
+            return;
+        }
+
+        message.textContent = "Saved to server.";
+
+        await Promise.all([
+            loadStats(),
+            loadTable()
+        ]);
+
+    } catch (error) {
+        console.error("Save failed:", error);
+
+        const pending = getPending();
+        pending.push(record);
+
+        try {
+            localStorage.setItem(
+                "agritrial_pending",
+                JSON.stringify(pending)
+            );
+
+            message.textContent =
+                "Saved on this device. Cloud sync is still needed.";
+
+            await loadStats();
+
+        } catch (storageError) {
+            console.error("Local storage failed:", storageError);
+
+            message.textContent =
+                "Unable to save the record. Please try again.";
+        }
+    }
+}
+
+// SYNC OFFLINE RECORDS
+
+async function syncNow() {
+    const message = document.getElementById("syncMessage");
+    const pending = getPending(); //local records
+
+    if (pending.length === 0) {
+        message.textContent = "No records to sync.";
+        return;
+    }
+
+    message.textContent = "Syncing...";
+    //browser to SQLite (backend)
+    let synced = 0;
+
+    // Process one record at a time.
+    // Stop on uncertainty to avoid duplicate submissions.
+    while (synced < pending.length) { 
+        const record = pending[synced];
+
+        let response;
+
+        try {
+            response = await fetch(API + "/observations", { //save button post
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(record)
+            });
+        } catch (error) {
+            console.error("Sync connection error:", error);
+            break; //server cant be reached so keep in loacl
+        }
+
+        if (!response.ok) {
+            console.error(
+                "Sync rejected:",
+                response.status,
+                await response.text()
+            );
+            break;
+        }
+
+        synced++;
+
+        localStorage.setItem( //remove synced records
+            "agritrial_pending",
+            JSON.stringify(pending.slice(synced))
+        );
+    }
+
+    const remaining = getPending().length;
+    // SQLite to Supabase 
+    let cloud = '';
+
+    try {
+        const res =  await frtch(API + '/sync', {method: "POST"});
+
+        if (!res.ok) throw new Error('Server returned ' + res.status); //goes to catch
+ 
+        const data = await res.join();
+
+        let ok = 0; //rows synced 
+        let bad = 0; //rows failed
+
+        data.results.forEacch( r => {
+            ok += r.synced;
+            bad += r.failed.length;
+        });
+
+        cloud = " Cloud: " + ok + " synced" + (bad ? ", " + bad + " failed." : ".");
+           
+    } catch (error) {
+        console.error('Cloud sync error: ', error); //F12
+        cloud = 'Cloud sync failed';
+    }
+
+    message.textContent = remaining === 0
+        ? "Sync complete."
+        : remaining + " record(s) still awaiting sync.";
+
+    await Promise.all([
+        loadStats(),
+        loadTable()
+    ]);
+}
+
+// API RESPONSE EXAMPLE
+
+async function loadApiExample() {
+    const url = API + "/observations";
+    const box = document.getElementById("apiExample");
+
+    try {
+        const response = await fetch(url);
+
+        if (!response.ok) {
+            throw new Error("Server returned " + response.status);
+        }
+
+        const data = await response.json();
+
+        const sample =
+            Array.isArray(data) && data.length > 0
+                ? JSON.stringify(data[0], null, 2)
+                : "No records yet";
+
+        box.textContent = "GET " + url + "\n\n" + sample;
+
+    } catch (error) {
+        console.error("API example error:", error);
+
+        box.textContent =
+         "GET " + url + "\n\n" +
+        (error.message === "Server returned 405" 
+           ? "GET /observations is not supported by the backend yet (HTTP 405)."
+           : "Unable to retrieve observations: " + error.message);
+    }
+}
+
+// LIVE 95% CONFIDENCE INTERVAL CHART
+
+async function drawChart() {
+    const canvas = document.getElementById("ciChart");
+    const ctx = canvas.getContext("2d");
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    ctx.fillStyle = "#555";
+    ctx.font = "15px Arial";
+    ctx.textAlign = "left";
+
+    ctx.fillText(
+        "Loading live confidence intervals...",
+        60,
+        45
+    );
+
+    const params = new URLSearchParams({
+        site: "Canola Trial Site",
+        crop: "Canola",
+        metric: "yield"
+    });
+
+    chartTreatments.forEach(treatment => {
+        params.append("treatments", treatment);
+    });
+
+    const url =
+        API + "/compare-multiple?" + params.toString();
+
+    try {
+        const response = await fetch(url);
+
+        if (!response.ok) {
+            throw new Error(
+                "Statistics endpoint returned " + response.status
+            );
+        }
+
+        const result = await response.json();
+        const groups = result.groups;
+
+        if (!Array.isArray(groups) || groups.length === 0) {
+            throw new Error("No treatment statistics available");
+        }
+
+        const valid = groups.every(group =>
+            typeof group.treatment === "string" &&
+            Number.isFinite(group.mean) &&
+            Number.isFinite(group.ci95_lower) &&
+            Number.isFinite(group.ci95_upper)
+        );
+
+        if (!valid) {
+            throw new Error("Incomplete confidence interval data");
+        }
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        const left = 85;
+        const right = 25;
+        const top = 45;
+        const bottom = 95;
+
+        const plotWidth = canvas.width - left - right;
+        const plotHeight = canvas.height - top - bottom;
+
+        const lows = groups.map(group => group.ci95_lower);
+        const highs = groups.map(group => group.ci95_upper);
+
+        let min = Math.min(...lows);
+        let max = Math.max(...highs);
+
+        const padding = (max - min || 1) * 0.12;
+
+        min = Math.max(0, min - padding);
+        max += padding;
+
+        function y(value) {
+            return top +
+                (max - value) * plotHeight / (max - min);
+        }
+
+        // Draw grid lines and axis labels.
+        ctx.lineWidth = 1;
+        ctx.font = "12px Arial";
+
+        for (let i = 0; i <= 5; i++) {
+            const value = min + (max - min) * i / 5;
+            const yy = y(value);
+
+            ctx.strokeStyle = "#dddddd";
+            ctx.beginPath();
+            ctx.moveTo(left, yy);
+            ctx.lineTo(canvas.width - right, yy);
+            ctx.stroke();
+
+            ctx.fillStyle = "#333";
+            ctx.textAlign = "right";
+
+            ctx.fillText(
+                value.toFixed(0),
+                left - 12,
+                yy + 4
+            );
+        }
+
+        // Draw confidence intervals for each treatment.
+        groups.forEach((group, index) => {
+            const x = left +
+                plotWidth * (index + 0.5) / groups.length;
+
+            const lowY = y(group.ci95_lower);
+            const highY = y(group.ci95_upper);
+            const meanY = y(group.mean);
+
+            // Vertical confidence interval.
+            ctx.strokeStyle = "#2e7d32";
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+
+            ctx.moveTo(x, lowY);
+            ctx.lineTo(x, highY);
+
+            // Lower cap.
+            ctx.moveTo(x - 9, lowY);
+            ctx.lineTo(x + 9, lowY);
+
+            // Upper cap.
+            ctx.moveTo(x - 9, highY);
+            ctx.lineTo(x + 9, highY);
+
+            ctx.stroke();
+
+            // Black dot for treatment mean.
+            ctx.fillStyle = "#111";
+            ctx.beginPath();
+            ctx.arc(x, meanY, 5, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Mean value.
+            ctx.textAlign = "center";
+            ctx.font = "11px Arial";
+
+            ctx.fillText(
+                group.mean.toFixed(1),
+                x,
+                meanY - 13
+            );
+
+            // Treatment name, split across lines.
+            const words = group.treatment.split(" ");
+
+            words.forEach((word, wordIndex) => {
+                ctx.fillText(
+                    word,
+                    x,
+                    canvas.height - 58 + wordIndex * 15
+                );
+            });
+
+            // Sample size.
+            ctx.fillText(
+                "n=" + group.n,
+                x,
+                canvas.height - 10
+            );
+        });
+
+        ctx.textAlign = "left";
+
+    } catch (error) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        ctx.fillStyle = "#b42318";
+        ctx.font = "15px Arial";
+        ctx.textAlign = "left";
+
+        ctx.fillText(
+            "Unable to load live confidence intervals.",
+            40,
+            55
+        );
+
+        ctx.fillStyle = "#555";
+        ctx.font = "12px Arial";
+
+        ctx.fillText(
+             "Check the API connection and treatment statistics.",
+             40,
+             80
+        );
+
+        console.error(
+            "Confidence interval chart error:",
+            error
+        );
+    }
+}
+
+// INITIALISE DASHBOARD
+
+renderFields();
+renderStats(null);
+
+loadTable();
+loadTreatments();
+loadStats();
+loadApiExample();
+
+</script>
+
+</body>
+</html>
